@@ -1,2 +1,2 @@
-# DatabasePtoject_group18
+# DatabaseProject_group18
 สำหรับติดตามการทำงานและประสานงานกัน
