@@ -1,0 +1,88 @@
+services:
+  laravel.test:
+    build:
+      context: ./vendor/laravel/sail/runtimes/8.4
+      dockerfile: Dockerfile
+      args:
+        WWWGROUP: '${WWWGROUP}'
+    image: sail-8.4/app
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '${APP_PORT:-80}:80'
+      - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
+    environment:
+      WWWUSER: '${WWWUSER}'
+      LARAVEL_SAIL: 1
+      XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+      XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+      IGNITION_LOCAL_SITES_PATH: '/var/www/html'   # เดิมใช้ ${PWD}
+      TZ: 'Asia/Bangkok'
+    volumes:
+      - .:/var/www/html
+    networks:
+      - sail
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mysql:
+    # แนะนำใช้ official image
+    image: 'mysql:8.0'
+    ports:
+      - '${FORWARD_DB_PORT:-3306}:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD}'
+      TZ: 'Asia/Bangkok'
+      # เอาอันนี้ออกถ้าตั้งรหัสผ่านอยู่แล้ว
+      # MYSQL_ALLOW_EMPTY_PASSWORD: 1
+      # ถ้าไม่ใช้จริง ให้เอาออกหรือกำหนดว่างใน .env
+      # MYSQL_EXTRA_OPTIONS: '${MYSQL_EXTRA_OPTIONS}'
+    command: [
+      "--default-authentication-plugin=mysql_native_password",
+      "--innodb_flush_method=O_DIRECT"
+    ]
+    volumes:
+      - sail-mysql:/var/lib/mysql
+      - ./vendor/laravel/sail/database/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh
+    networks:
+      - sail
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_PASSWORD}"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+      start_period: 20s
+
+  redis:
+    image: 'redis:alpine'
+    ports:
+      - '${FORWARD_REDIS_PORT:-6379}:6379'
+    command: ["redis-server","--appendonly","yes"]
+    volumes:
+      - sail-redis:/data
+    networks:
+      - sail
+    environment:
+      TZ: 'Asia/Bangkok'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+      start_period: 5s
+
+networks:
+  sail:
+    driver: bridge
+
+volumes:
+  sail-mysql:
+    driver: local
+  sail-redis:
+    driver: local

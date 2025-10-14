@@ -1,0 +1,322 @@
+openapi: 3.0.3
+info:
+  title: Notebook Shop API
+  version: 1.0.0
+  description: >
+    Backend สำหรับร้านขายโน้ตบุ๊ก (Acer, Asus, Dell, HP, Lenovo, MSI)  
+    รองรับการจัดการสินค้า, แบรนด์, หมวดหมู่ และรูปภาพสินค้า
+
+servers:
+  - url: http://localhost
+    description: Local (Sail / Docker)
+tags:
+  - name: Brands
+  - name: Categories
+  - name: Products
+  - name: Product Images
+
+paths:
+  /api/brands:
+    get:
+      tags: [Brands]
+      summary: List all brands
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Brand' }
+
+  /api/categories:
+    get:
+      tags: [Categories]
+      summary: List all categories
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Category' }
+
+  /api/products:
+    get:
+      tags: [Products]
+      summary: List products (paginated + filters)
+      parameters:
+        - in: query
+          name: per_page
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+          description: Items per page
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: brand_id
+          schema: { type: integer }
+        - in: query
+          name: cpu_brand
+          schema:
+            type: string
+            enum: [Intel, AMD]
+        - in: query
+          name: category_id
+          schema: { type: integer }
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Search in model/cpu_model/gpu
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [price_asc, price_desc, newest]
+            default: newest
+      responses:
+        '200':
+          description: OK (Laravel pagination shape)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProducts'
+
+    post:
+      tags: [Products]
+      summary: Create product
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductCreate' }
+            examples:
+              example:
+                value:
+                  brand_id: 6
+                  model: Katana 15
+                  cpu_brand: Intel
+                  cpu_model: i7-13620H
+                  ram_gb: 16
+                  storage_gb: 512
+                  gpu: RTX 4060
+                  price: 39990
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location:
+              description: Resource URL
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '422':
+          description: Validation error
+
+  /api/products/{id}:
+    get:
+      tags: [Products]
+      summary: Get a product by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { description: Not Found }
+
+    put:
+      tags: [Products]
+      summary: Update product (replace fields)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { description: Not Found }
+        '422': { description: Validation error }
+
+    patch:
+      tags: [Products]
+      summary: Partially update product
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { description: Not Found }
+        '422': { description: Validation error }
+
+    delete:
+      tags: [Products]
+      summary: Delete product
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: No Content }
+        '404': { description: Not Found }
+
+  /api/products/{id}/images:
+    get:
+      tags: [Product Images]
+      summary: List images of a product
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ProductImage' }
+        '404': { description: Not Found }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Brand:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+
+    Category:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+
+    ProductImage:
+      type: object
+      properties:
+        id: { type: integer }
+        product_id: { type: integer }
+        url: { type: string }
+        is_primary: { type: boolean }
+        sort_order: { type: integer }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+
+    ProductBase:
+      type: object
+      required: [brand_id, model, cpu_brand]
+      properties:
+        brand_id: { type: integer, example: 6 }
+        model:    { type: string, example: "Katana 15" }
+        cpu_brand:
+          type: string
+          enum: [Intel, AMD]
+          example: Intel
+        cpu_model:  { type: string, nullable: true, example: "i7-13620H" }
+        ram_gb:     { type: integer, nullable: true, example: 16, minimum: 1 }
+        storage_gb: { type: integer, nullable: true, example: 512, minimum: 1 }
+        gpu:        { type: string, nullable: true, example: "RTX 4060" }
+        price:      { type: number, nullable: true, example: 39990 }
+
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/ProductBase'
+        - type: object
+          properties:
+            id: { type: integer }
+            created_at: { type: string, format: date-time, nullable: true }
+            updated_at: { type: string, format: date-time, nullable: true }
+            brand:       { $ref: '#/components/schemas/Brand' }
+            categories:
+              type: array
+              items: { $ref: '#/components/schemas/Category' }
+            primary_image:
+              $ref: '#/components/schemas/ProductImage'
+
+    ProductCreate:
+      $ref: '#/components/schemas/ProductBase'
+
+    ProductUpdate:
+      type: object
+      properties:
+        brand_id:   { type: integer }
+        model:      { type: string }
+        cpu_brand:  { type: string, enum: [Intel, AMD] }
+        cpu_model:  { type: string, nullable: true }
+        ram_gb:     { type: integer, minimum: 1 }
+        storage_gb: { type: integer, minimum: 1 }
+        gpu:        { type: string, nullable: true }
+        price:      { type: number, nullable: true }
+
+    LaravelPaginationLinks:
+      type: object
+      properties:
+        url:   { type: string, nullable: true }
+        label: { type: string }
+        page:  { type: integer, nullable: true }
+        active:{ type: boolean }
+
+    PaginatedProducts:
+      type: object
+      properties:
+        current_page: { type: integer }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Product' }
+        first_page_url: { type: string }
+        from:  { type: integer, nullable: true }
+        last_page: { type: integer }
+        last_page_url: { type: string }
+        links:
+          type: array
+          items: { $ref: '#/components/schemas/LaravelPaginationLinks' }
+        next_page_url: { type: string, nullable: true }
+        path: { type: string }
+        per_page: { type: integer }
+        prev_page_url: { type: string, nullable: true }
+        to: { type: integer, nullable: true }
+        total: { type: integer }
