@@ -26,7 +26,7 @@
                     </a>
 
                     <!-- Navigation -->
-                    <div class="flex items-center gap-6 ml-4">
+                    <div class="flex items-center gap-8 ml-4">
                         <a href="{{ url('/') }}" class="text-gray-900 font-medium hover:text-blue-600 transition">HOMES</a>
                         <a href="{{ url('/products') }}" class="text-gray-900 font-medium flex items-center gap-1 hover:text-blue-600 transition">
                             PRODUCTS
@@ -79,12 +79,6 @@
                                 
                                 <div class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                                     <div class="py-2">
-                                        <a href="{{ url('/dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                            </svg>
-                                            Dashboard
-                                        </a>
                                         <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -147,7 +141,7 @@
                 </div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-2">ไม่มีสินค้าในตะกร้า</h2>
                 <p class="text-gray-500 mb-8">ยังไม่มีสินค้าที่เลือกอยู่ในตอนนี้</p>
-                <a href="{{ url('/') }}" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+                <a href="{{ url('/products') }}" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
                     เลือกซื้อสินค้า
                 </a>
             </div>

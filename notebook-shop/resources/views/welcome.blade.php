@@ -208,17 +208,19 @@
                     <!-- Right Side -->
                     <div class="flex items-center gap-6">
                         <!-- Cart -->
-                        <a href="{{ route('cart.index') }}" class="relative hover:opacity-80 transition">
-                            <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                            </svg>
-                            @php
-                                $cartCount = 0;
-                            @endphp
-                            <span class="absolute -top-2 -right-2 bg-blue-600 text-white text-xs {{ $cartCount > 99 ? 'min-w-[24px] px-1' : 'w-5' }} h-5 flex items-center justify-center rounded-full font-semibold">
-                                {{ $cartCount > 99 ? '99+' : $cartCount }}
-                            </span>
-                        </a>
+                      <a href="{{ route('cart.index') }}" class="relative hover:opacity-80 transition">
+                          <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          </svg>
+                          @php
+                              $cartCount = count(session('cart', []));
+                          @endphp
+                          @if($cartCount > 0)
+                          <span class="absolute -top-2 -right-2 bg-blue-600 text-white text-xs {{ $cartCount > 99 ? 'min-w-[24px] px-1' : 'w-5' }} h-5 flex items-center justify-center rounded-full font-semibold">
+                              {{ $cartCount > 99 ? '99+' : $cartCount }}
+                          </span>
+                          @endif
+                      </a>
 
                         <!-- User Profile / Login Button -->
                         @if (Route::has('login'))
@@ -229,7 +231,7 @@
                                         <!-- Profile Image -->
                                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold shadow-md overflow-hidden">
                                             @if(Auth::user()->profile_photo_path)
-                                                <img src="{{ Storage::url(Auth::user()->profile_photo_path) }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
+                                                <img src="{{ $user->avatarUrl() }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
                                             @else
                                                 {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                                             @endif

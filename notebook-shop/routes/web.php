@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\ProductController;
 use App\Models\Product;
 
 /**
@@ -12,6 +13,13 @@ use App\Models\Product;
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+/**
+ * หน้าสินค้าทั้งหมด (สาธารณะ)
+ */
+Route::get('/products', function () {
+    return view('products.index');
+})->name('products.index');
 
 /**
  * หน้าสินค้าแบบ public (กดจากการ์ด)

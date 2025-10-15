@@ -14,7 +14,7 @@
 
     <div style="display:grid;grid-template-columns: 200px 1fr; gap:20px; align-items:flex-start">
         <div style="text-align:center">
-            <img src="{{ $user->avatarUrl() }}" alt="avatar" style="width:160px;height:160px;border-radius:50%;object-fit:cover;border:1px solid #e5e7eb">
+            <img src="{{ $user->avatarUrl() }}" alt="avatar" style="width:160px;height:160px;border-radius:50%;object-fit:cover;border:1px solid #080808ff">
         </div>
 
         <form method="post" action="{{ route('profile.update') }}" enctype="multipart/form-data"
