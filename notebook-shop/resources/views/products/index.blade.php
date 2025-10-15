@@ -116,6 +116,7 @@
             flex-direction: column;
             justify-content: flex-start;
             padding-top: 0.5rem;
+            padding-left: 0.5rem;
         }
 
         .brand-carousel {

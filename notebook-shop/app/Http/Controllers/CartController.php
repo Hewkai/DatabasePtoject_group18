@@ -60,6 +60,41 @@ class CartController extends Controller
         return back()->with('ok', 'ลบสินค้าแล้ว');
     }
 
+    /** เพิ่มจำนวนสินค้าในตะกร้า */
+    public function increase(Request $request, $id)
+    {
+        $cart = $request->session()->get('cart', []);
+        
+        if (isset($cart[$id])) {
+            $cart[$id]['qty']++;
+            $request->session()->put('cart', $cart);
+            return back()->with('ok', 'เพิ่มจำนวนแล้ว');
+        }
+
+        return back()->with('warn', 'ไม่พบสินค้าในตะกร้า');
+    }
+
+    /** ลดจำนวนสินค้าในตะกร้า */
+    public function decrease(Request $request, $id)
+    {
+        $cart = $request->session()->get('cart', []);
+        
+        if (isset($cart[$id])) {
+            if ($cart[$id]['qty'] > 1) {
+                $cart[$id]['qty']--;
+                $request->session()->put('cart', $cart);
+                return back()->with('ok', 'ลดจำนวนแล้ว');
+            } else {
+                // ถ้าจำนวนเหลือ 1 แล้วกด - จะลบสินค้าออกจากตะกร้า
+                unset($cart[$id]);
+                $request->session()->put('cart', $cart);
+                return back()->with('ok', 'ลบสินค้าออกจากตะกร้าแล้ว');
+            }
+        }
+
+        return back()->with('warn', 'ไม่พบสินค้าในตะกร้า');
+    }
+
     /** หน้า checkout */
     public function checkoutShow(Request $request)
     {
@@ -82,7 +117,7 @@ class CartController extends Controller
         $cart  = $request->session()->get('cart', []);
         $total = collect($cart)->sum(fn($row) => $row['price'] * $row['qty']);
 
-        // เดโม่: เก็บ “คำสั่งซื้อล่าสุด” ไว้ใน session แล้วล้างตะกร้า
+        // เดโม่: เก็บ "คำสั่งซื้อล่าสุด" ไว้ใน session แล้วล้างตะกร้า
         $request->session()->put('last_order', [
             'items'     => array_values($cart),
             'total'     => $total,

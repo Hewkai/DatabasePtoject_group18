@@ -53,6 +53,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
     Route::post('/cart/remove/{product}', [CartController::class, 'remove'])->name('cart.remove');
+    
+    // เพิ่ม 2 บรรทัดนี้
+    Route::post('/cart/increase/{id}', [CartController::class, 'increase'])->name('cart.increase');
+    Route::post('/cart/decrease/{id}', [CartController::class, 'decrease'])->name('cart.decrease');
 
     Route::get('/checkout', [CartController::class, 'checkoutShow'])->name('checkout.show');
     Route::post('/checkout', [CartController::class, 'checkoutProcess'])->name('checkout.process');
