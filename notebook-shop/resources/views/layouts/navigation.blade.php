@@ -16,13 +16,52 @@
                        class="font-medium hover:text-blue-600 transition {{ request()->is('/') ? 'text-blue-600' : 'text-gray-900' }}">
                         HOMES
                     </a>
-                    <a href="{{ url('/products') }}" 
-                       class="font-medium flex items-center gap-1 hover:text-blue-600 transition {{ request()->is('products*') ? 'text-blue-600' : 'text-gray-900' }}">
-                        PRODUCTS
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </a>
+                    
+                    <!-- Products with Dropdown -->
+                    <div class="relative group">
+                        <a href="{{ url('/products') }}" 
+                           class="font-medium flex items-center gap-1 hover:text-blue-600 transition {{ request()->is('products*') ? 'text-blue-600' : 'text-gray-900' }}">
+                            PRODUCTS
+                            <svg class="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </a>
+                        
+                        <!-- Dropdown Menu -->
+                        <div class="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 max-h-96 overflow-y-auto">
+                            <div class="py-2">
+                                <!-- All Products -->
+                                <a href="{{ url('/products') }}" 
+                                   class="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition font-medium">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                    </svg>
+                                    All Products
+                                </a>
+                                
+                                <hr class="my-2 border-gray-100">
+                                
+                                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    Brands
+                                </div>
+                                
+                                <!-- Dynamic Brands List -->
+                                @php
+                                    $brands = \App\Models\Brand::orderBy('name', 'asc')->get();
+                                @endphp
+                                
+                                @foreach($brands as $brand)
+                                    <a href="{{ url('/products?brand=' . urlencode($brand->name)) }}" 
+                                       class="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                        </svg>
+                                        {{ $brand->name }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -106,4 +145,41 @@
             </div>
         </div>
     </div>
+
+    <!-- Custom Scrollbar Style for Dropdown -->
+    <style>
+        .group:hover .group-hover\:opacity-100 {
+            animation: slideDown 0.2s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Custom Scrollbar */
+        .overflow-y-auto::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
 </nav>

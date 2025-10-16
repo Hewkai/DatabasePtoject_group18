@@ -245,7 +245,7 @@
             <!-- Loading State -->
             <div id="loading-products" class="text-center py-12">
                 <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
-                <p class="mt-4 text-gray-600">กำลังโหลดสินค้า...</p>
+                <p class="mt-4 text-gray-600">Loading products...</p>
             </div>
 
             <!-- Error State -->
@@ -285,8 +285,8 @@
 
                     <!-- Empty Message -->
                     <div class="space-y-2">
-                        <h3 class="text-2xl font-bold text-gray-900">ไม่มีสินค้า</h3>
-                        <p class="text-gray-600">ขณะนี้ยังไม่มีสินค้าในหมวดหมู่นี้</p>
+                        <h3 class="text-2xl font-bold text-gray-900">No Products Found</h3>
+                        <p class="text-gray-600">There are no products in this category</p>
                     </div>
 
                     <!-- Back Button -->
@@ -297,7 +297,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
-                        กลับหน้าหลัก
+                        Back to Home
                     </a>
                 </div>
             </div>
@@ -308,6 +308,7 @@
         // Constants
         const CSRF = @json(csrf_token());
         const LOGGED_IN = @json(auth()->check());
+        const PRODUCTS_PER_PAGE = 10; // Changed from 20 to 10
         
         // DOM Elements
         const loadingEl = document.getElementById('loading-products');
@@ -332,7 +333,7 @@
         let searchQuery = '';
         let currentCarouselPage = 0;
         let totalCarouselPages = 1;
-        const brandsPerPage = 10; // แสดง 2 แถว x 5 แบรนด์ = 10 แบรนด์ต่อหน้า
+        const brandsPerPage = 10;
 
         // Format price
         function formatPrice(price) {
@@ -348,7 +349,7 @@
             const img = product.primary_image?.url ?? null;
             const detailUrl = `/product/${product.id}`;
             
-            // สร้าง description จาก specs
+            // Create description from specs
             const cpu = [product.cpu_brand, product.cpu_model].filter(Boolean).join(' ');
             const ram = product.ram_gb ? `${product.ram_gb}GB RAM` : '';
             const storage = product.storage_gb ? `${product.storage_gb}GB SSD` : '';
@@ -440,6 +441,13 @@
             `;
         }
 
+        // Get paginated products
+        function getPaginatedProducts() {
+            const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+            const endIndex = startIndex + PRODUCTS_PER_PAGE;
+            return filteredProducts.slice(startIndex, endIndex);
+        }
+
         // Render products
         function renderProducts() {
             if (filteredProducts.length === 0) {
@@ -448,7 +456,8 @@
                 return;
             }
 
-            gridEl.innerHTML = filteredProducts.map(createProductCard).join('');
+            const paginatedProducts = getPaginatedProducts();
+            gridEl.innerHTML = paginatedProducts.map(createProductCard).join('');
             productsContainer.classList.remove('hidden');
             emptyEl.classList.add('hidden');
             
@@ -463,6 +472,7 @@
             }, 50);
 
             // Update pagination info
+            totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE) || 1;
             pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
             prevPageBtn.disabled = currentPage === 1;
             nextPageBtn.disabled = currentPage === totalPages;
@@ -472,7 +482,7 @@
         function createCategoryFilters() {
             const categories = [...new Set(allProducts.flatMap(p => 
                 p.categories?.map(c => c.name) || []
-            ))].filter(Boolean);
+            ))].filter(Boolean).sort(); // Sort alphabetically
             
             let filtersHTML = `
                 <button class="category-button active w-full flex items-center gap-3 px-4 py-2 rounded-lg transition text-left" onclick="filterByCategory('All')">
@@ -490,12 +500,12 @@
                 `;
             });
 
-            categoryFiltersEl.innerHTML += filtersHTML;
+            categoryFiltersEl.innerHTML = filtersHTML;
         }
 
-        // Create brand filters with carousel
+        // Create brand filters with carousel (sorted A-Z)
         function createBrandFilters() {
-            const brands = [...new Set(allProducts.map(p => p.brand?.name).filter(Boolean))];
+            const brands = [...new Set(allProducts.map(p => p.brand?.name).filter(Boolean))].sort(); // Sort A-Z
             
             if (brands.length === 0) return;
 
@@ -515,6 +525,7 @@
             // Create dots if more than brandsPerPage
             if (totalCarouselPages > 1) {
                 createCarouselDots();
+                goToCarouselPage(0); // Initialize first page
             } else {
                 carouselDotsEl.innerHTML = '';
             }
@@ -623,7 +634,6 @@
                 return true;
             });
             
-            totalPages = Math.ceil(filteredProducts.length / 20) || 1;
             renderProducts();
         }
 
@@ -642,14 +652,16 @@
         prevPageBtn.addEventListener('click', () => {
             if (currentPage > 1) {
                 currentPage--;
-                loadProducts();
+                renderProducts();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
 
         nextPageBtn.addEventListener('click', () => {
             if (currentPage < totalPages) {
                 currentPage++;
-                loadProducts();
+                renderProducts();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
 
@@ -678,65 +690,15 @@
             });
         }
 
-        // Load products from API
-        async function loadProducts() {
-            try {
-                const params = new URLSearchParams({
-                    page: currentPage,
-                    per_page: 20
-                });
-
-                if (currentCategory !== 'All') {
-                    // Find category ID if needed
-                    const categoryProduct = allProducts.find(p => 
-                        p.categories?.some(c => c.name === currentCategory)
-                    );
-                    if (categoryProduct) {
-                        const category = categoryProduct.categories.find(c => c.name === currentCategory);
-                        if (category) {
-                            params.append('category_id', category.id);
-                        }
-                    }
-                }
-
-                if (currentBrand) {
-                    const brandProduct = allProducts.find(p => p.brand?.name === currentBrand);
-                    if (brandProduct?.brand?.id) {
-                        params.append('brand_id', brandProduct.brand.id);
-                    }
-                }
-
-                if (searchQuery) {
-                    params.append('q', searchQuery);
-                }
-
-                const response = await fetch(`/api/products?${params.toString()}`, {
-                    headers: { 'Accept': 'application/json' }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const json = await response.json();
-                const products = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
-                
-                filteredProducts = products;
-                totalPages = json.last_page || Math.ceil(json.total / 20) || 1;
-                
-                renderProducts();
-                loadingEl.classList.add('hidden');
-                
-            } catch (error) {
-                loadingEl.classList.add('hidden');
-                errorEl.classList.remove('hidden');
-                errorEl.querySelector('p').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + (error?.message ?? error);
-            }
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
         }
 
         // Initial load - fetch all products first for filters
         async function initializeProducts() {
             try {
+                // Fetch first page to get total count
                 const response = await fetch('/api/products?per_page=100', {
                     headers: { 'Accept': 'application/json' }
                 });
@@ -747,14 +709,33 @@
 
                 const json = await response.json();
                 allProducts = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+                
+                // If there are more pages, fetch them
+                if (json.last_page && json.last_page > 1) {
+                    const promises = [];
+                    for (let page = 2; page <= Math.min(json.last_page, 10); page++) {
+                        promises.push(
+                            fetch(`/api/products?per_page=100&page=${page}`, {
+                                headers: { 'Accept': 'application/json' }
+                            }).then(res => res.json())
+                        );
+                    }
+                    
+                    const results = await Promise.all(promises);
+                    results.forEach(result => {
+                        if (Array.isArray(result.data)) {
+                            allProducts = [...allProducts, ...result.data];
+                        }
+                    });
+                }
+                
                 filteredProducts = [...allProducts];
                 
-                // Create filters
+                // Create filters (with sorting)
                 createCategoryFilters();
                 createBrandFilters();
                 
                 // Show first page
-                totalPages = Math.ceil(allProducts.length / 20) || 1;
                 renderProducts();
                 
                 loadingEl.classList.add('hidden');
@@ -762,7 +743,7 @@
             } catch (error) {
                 loadingEl.classList.add('hidden');
                 errorEl.classList.remove('hidden');
-                errorEl.querySelector('p').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + (error?.message ?? error);
+                errorEl.querySelector('p').textContent = 'Failed to load products: ' + (error?.message ?? error);
             }
         }
 
@@ -774,7 +755,27 @@
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            initializeProducts();
+            initializeProducts().then(() => {
+                // Check if brand parameter exists in URL
+                const brandFromUrl = getUrlParameter('brand');
+                if (brandFromUrl) {
+                    // Find and activate the brand button
+                    const brandButtons = document.querySelectorAll('.brand-button');
+                    brandButtons.forEach(btn => {
+                        const brandName = btn.querySelector('span').textContent.trim();
+                        if (brandName === brandFromUrl) {
+                            currentBrand = brandFromUrl;
+                            btn.classList.add('active');
+                            applyFilters();
+                            
+                            // Scroll to products section
+                            setTimeout(() => {
+                                productsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 300);
+                        }
+                    });
+                }
+            });
         });
     </script>
 </body>

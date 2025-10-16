@@ -833,7 +833,7 @@
             // Load products from API
             async function loadProducts() {
                 try {
-                    const response = await fetch('/api/products?per_page=60', {
+                    const response = await fetch('/api/products?per_page=10', {
                         headers: { 'Accept': 'application/json' }
                     });
 
