@@ -57,7 +57,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                             </svg>
                             @php
-                                $cartCount = session()->has('cart') ? count(session('cart')) : 0;
+                                $cart = session('cart', []);
+                                $cartCount = array_sum(array_column($cart, 'qty'));
                             @endphp
                             @if($cartCount > 0)
                             <span class="absolute -top-2 -right-2 bg-blue-600 text-white text-xs {{ $cartCount > 99 ? 'min-w-[24px] px-1' : 'w-5' }} h-5 flex items-center justify-center rounded-full font-semibold">
@@ -86,11 +87,7 @@
                             <div class="relative group">
                                 <button class="flex items-center gap-3 hover:opacity-80 transition">
                                     <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold shadow-md overflow-hidden">
-                                        @if(Auth::user()->profile_photo_path)
-                                            <img src="{{ Storage::url(Auth::user()->profile_photo_path) }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
-                                        @else
-                                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                                        @endif
+                                        <img src="{{ Auth::user()->avatarUrl() }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
                                     </div>
                                     <span class="font-medium text-gray-700">{{ Auth::user()->name }}</span>
                                     <svg class="w-4 h-4 text-gray-500 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -58,8 +58,12 @@
                             <div class="flex gap-6">
                                 <!-- Product Image -->
                                 <div class="flex-shrink-0 w-32 h-32 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden">
-                                    @if(isset($row['image']))
-                                        <img src="{{ asset($row['image']) }}" alt="{{ $row['name'] }}" class="w-full h-full object-contain p-2">
+                                    @php
+                                        $product = \App\Models\Product::with('primaryImage')->find($row['id']);
+                                        $imageUrl = $product?->primaryImage?->url;
+                                    @endphp
+                                    @if($imageUrl)
+                                        <img src="{{ $imageUrl }}" alt="{{ $row['name'] }}" class="w-full h-full object-contain p-2">
                                     @else
                                         <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />

@@ -53,10 +53,18 @@
                             @foreach($items as $item)
                                 <div class="flex gap-4">
                                     <!-- Product Image -->
-                                    <div class="flex-shrink-0 w-24 h-24 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center overflow-hidden">
-                                        <div class="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
-                                            รูปสินค้า
-                                        </div>
+                                    <div class="flex-shrink-0 w-24 h-24 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden">
+                                        @php
+                                            $product = \App\Models\Product::with('primaryImage')->find($item['id']);
+                                            $imageUrl = $product?->primaryImage?->url;
+                                        @endphp
+                                        @if($imageUrl)
+                                            <img src="{{ $imageUrl }}" alt="{{ $item['name'] }}" class="w-full h-full object-contain p-2">
+                                        @else
+                                            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                            </svg>
+                                        @endif
                                     </div>
 
                                     <!-- Product Details -->
