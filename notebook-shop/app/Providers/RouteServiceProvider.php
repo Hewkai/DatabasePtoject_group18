@@ -6,5 +6,19 @@ use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvi
 
 class RouteServiceProvider extends ServiceProvider
 {
-    public const HOME = '/'; // ← ให้กลับหน้าแรกหลัง login / register
+    /**
+     * Determine redirect path after login based on user role.
+     */
+    public static function redirectTo()
+    {
+        $user = auth()->user();
+
+        if ($user && $user->role === 'admin') {
+            // redirect admin to dashboard
+            return '/admin/dashboard';
+        }
+
+        // everyone else (customer)
+        return '/';
+    }
 }

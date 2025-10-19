@@ -47,6 +47,10 @@
                                 </svg>
                             </a>
                         </div>
+                                            <a href="{{ url('/members') }}" 
+                       class="font-medium hover:text-blue-600 transition {{ request()->is('/members') ? 'text-blue-600' : 'text-gray-900' }}">
+                        MEMBERS
+                    </a>
                     </div>
 
                     <!-- Right Side -->

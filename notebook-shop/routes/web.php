@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ProductController;
@@ -29,6 +31,8 @@ Route::get('/product/{product}', function (Product $product) {
     return view('public.product', compact('product'));
 })->name('product.show');
 
+//member
+Route::get('/members', [MemberController::class, 'index'])->name('members.index');
 /**
  * Dashboard (ต้องล็อกอิน + verified)
  */
@@ -61,6 +65,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/checkout', [CartController::class, 'checkoutProcess'])->name('checkout.process');
 
     Route::get('/orders', [CartController::class, 'ordersIndex'])->name('orders.index');
+});
+//  Admin Dashboard
+
+Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+    // The URI will be /admin/dashboard
+    // The name will be admin.dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Add other admin routes here (e.g., product management)
+    // Route::resource('/products', App\Http\Controllers\Admin\ProductManagementController::class);
 });
 
 /** เส้นทาง auth ของ Breeze */

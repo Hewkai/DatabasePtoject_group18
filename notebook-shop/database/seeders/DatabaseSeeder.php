@@ -6,7 +6,8 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
-// เพิ่ม use ของ seeder อื่น ๆ ที่จะเรียก
+// เรียกใช้ seeder อื่น ๆ
+use Database\Seeders\AdminUserSeeder;
 use Database\Seeders\BrandSeeder;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\ProductSeeder;
@@ -15,18 +16,24 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ทำให้รันซ้ำได้ (idempotent) ป้องกัน unique ซ้ำ users.email
+        // สร้างผู้ใช้ตัวอย่าง (รันซ้ำได้ ไม่ชน unique email)
         User::updateOrCreate(
             ['email' => 'test@example.com'],
             [
-                'name' => 'Test User',
-                'password' => Hash::make('password'),
+                'name'              => 'Test User',
+                'password'          => Hash::make('password'),
                 'email_verified_at' => now(),
+                // ผู้ใช้ตัวอย่างไม่ใช่แอดมิน
+                'is_admin'          => false,
             ]
         );
 
-        // เรียก seeder ทั้งหมดตามลำดับ
+        // เรียก seeder ตามลำดับ
         $this->call([
+            // 1) แอดมิน (อ่านค่าจาก .env: ADMIN_NAME / ADMIN_EMAIL / ADMIN_PASSWORD)
+            AdminUserSeeder::class,
+
+            // 2) ข้อมูลอ้างอิงและสินค้า
             BrandSeeder::class,
             CategorySeeder::class,
             ProductSeeder::class,
