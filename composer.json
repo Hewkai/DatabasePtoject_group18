@@ -1,5 +1,0 @@
-{
-    "require-dev": {
-        "laravel/sail": "^1.46"
-    }
-}
