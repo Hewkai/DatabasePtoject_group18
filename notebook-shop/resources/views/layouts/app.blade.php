@@ -6,7 +6,10 @@
 
     <title>{{ config('app.name', 'Notebook Shop') }}</title>
 
-    {{-- ใส่สไตล์เล็กน้อยให้หน้าอ่านง่าย --}}
+    {{-- โหลดไฟล์จาก Vite: Tailwind + JS --}}
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- สไตล์เสริมเล็กน้อย (จะคงไว้หรือเอาออกก็ได้) --}}
     <style>
         :root{--b:#e6e6e6;--c:#111;--bg:#fafafa}
         *{box-sizing:border-box}
@@ -20,7 +23,6 @@
 </head>
 <body>
 <div class="container">
-    {{-- Top bar แบบเรียบง่าย --}}
     <header>
         <div>
             <a href="{{ url('/') }}" aria-label="Home">🛍️ {{ config('app.name', 'Notebook Shop') }}</a>
@@ -31,7 +33,7 @@
             @auth
                 <a href="{{ route('profile.edit') }}">โปรไฟล์ของฉัน</a>
                 @if(auth()->user()->is_admin)
-                    <a href="/admin">Admin</a>
+                    <a href="{{ route('admin.dashboard') }}">Admin</a>
                     <a href="/api/products" target="_blank" rel="noopener">API</a>
                 @endif
                 <form action="{{ route('logout') }}" method="POST" style="display:inline">
@@ -47,9 +49,7 @@
         </nav>
     </header>
 
-    <!-- Page Content -->
     <main>
-        {{-- รองรับทั้งแบบ Component ($slot) และแบบ Layout (@section/@yield) --}}
         @isset($slot)
             {{ $slot }}
         @else
@@ -57,5 +57,8 @@
         @endisset
     </main>
 </div>
+
+{{-- สคริปต์เพิ่มเติมจากเพจย่อย (เช่น Chart.js ใน admin.dashboard) --}}
+@stack('scripts')
 </body>
 </html>
