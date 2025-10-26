@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ProductController;
 use App\Models\Product;
+use App\Http\Controllers\MemberController;
 use App\Http\Controllers\Admin\DashboardController;
 
 /**
@@ -62,7 +63,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/checkout', [CartController::class, 'checkoutShow'])->name('checkout.show');
     Route::post('/checkout', [CartController::class, 'checkoutProcess'])->name('checkout.process');
 
+    Route::get('/members', [MemberController::class, 'index'])->name('members.index');
+
     Route::get('/orders', [CartController::class, 'ordersIndex'])->name('orders.index');
+
 });
 
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
