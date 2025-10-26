@@ -2,12 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ProductController;
 use App\Models\Product;
+use App\Http\Controllers\Admin\DashboardController;
 
 /**
  * หน้าแรก (สาธารณะ)
@@ -31,8 +30,6 @@ Route::get('/product/{product}', function (Product $product) {
     return view('public.product', compact('product'));
 })->name('product.show');
 
-//member
-Route::get('/members', [MemberController::class, 'index'])->name('members.index');
 /**
  * Dashboard (ต้องล็อกอิน + verified)
  */
@@ -58,6 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
     Route::post('/cart/remove/{product}', [CartController::class, 'remove'])->name('cart.remove');
     
+
     Route::post('/cart/increase/{id}', [CartController::class, 'increase'])->name('cart.increase');
     Route::post('/cart/decrease/{id}', [CartController::class, 'decrease'])->name('cart.decrease');
 
@@ -66,7 +64,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/orders', [CartController::class, 'ordersIndex'])->name('orders.index');
 });
-//  Admin Dashboard
 
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
     // The URI will be /admin/dashboard

@@ -71,7 +71,6 @@ class AdminPanelProvider extends PanelProvider
                 'Settings',
             ])
 
-            // 🏠 เพิ่มลิงก์กลับหน้า Welcome ด้านบน Navigation
             ->navigationItems([
                 NavigationItem::make('Back to Website')
                     ->url('/', shouldOpenInNewTab: false)

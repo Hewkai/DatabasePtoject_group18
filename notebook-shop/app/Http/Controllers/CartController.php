@@ -1,9 +1,12 @@
 <?php
+// app/Http/Controllers/CartController.php
 
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Models\Order;
+use App\Models\OrderItem;
 
 class CartController extends Controller
 {
@@ -85,7 +88,6 @@ class CartController extends Controller
                 $request->session()->put('cart', $cart);
                 return back()->with('ok', 'ลดจำนวนแล้ว');
             } else {
-                // ถ้าจำนวนเหลือ 1 แล้วกด - จะลบสินค้าออกจากตะกร้า
                 unset($cart[$id]);
                 $request->session()->put('cart', $cart);
                 return back()->with('ok', 'ลบสินค้าออกจากตะกร้าแล้ว');
@@ -107,33 +109,69 @@ class CartController extends Controller
         return view('checkout.show', compact('cart','total'));
     }
 
-    /** ยืนยันสั่งซื้อ (เดโม่) */
+    /** ยืนยันสั่งซื้อ - บันทึกลงฐานข้อมูล */
     public function checkoutProcess(Request $request)
     {
         $request->validate([
             'address' => ['required','string','max:500'],
         ]);
 
-        $cart  = $request->session()->get('cart', []);
+        $cart = $request->session()->get('cart', []);
+        
+        if (empty($cart)) {
+            return redirect()->route('cart.index')->with('warn', 'ตะกร้าว่าง');
+        }
+
         $total = collect($cart)->sum(fn($row) => $row['price'] * $row['qty']);
 
-        // เดโม่: เก็บ "คำสั่งซื้อล่าสุด" ไว้ใน session แล้วล้างตะกร้า
-        $request->session()->put('last_order', [
-            'items'     => array_values($cart),
-            'total'     => $total,
-            'address'   => $request->string('address'),
-            'placed_at' => now()->toDateTimeString(),
-            'order_no'  => 'OD'.now()->format('ymdHis'),
+        // สร้าง Order
+        $order = Order::create([
+            'user_id' => auth()->id(),
+            'order_no' => 'OD' . now()->format('ymdHis') . rand(100, 999),
+            'total' => $total,
+            'address' => $request->input('address'),
+            'payment_status' => 'paid', // เปลี่ยนเป็น COD
+            'order_status' => 'preparing',
+            'paid_at' => now(),
         ]);
+
+        // สร้าง Order Items
+        foreach ($cart as $item) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $item['id'],
+                'product_name' => $item['name'],
+                'brand_name' => $item['brand'],
+                'quantity' => $item['qty'],
+                'price' => $item['price'],
+            ]);
+        }
+
+        // ล้างตะกร้า
         $request->session()->forget('cart');
 
-        return redirect()->route('orders.index')->with('ok','สั่งซื้อสำเร็จ (เดโม่)');
+        return redirect()->route('orders.index', $order->id)->with('ok', 'สั่งซื้อสำเร็จ');
     }
 
-    /** รายการสั่งซื้อ (เดโม่) */
+    /** แสดงคำสั่งซื้อเดี่ยว */
+    public function showOrder(Request $request, $orderId)
+    {
+        $order = Order::with(['items.product.primaryImage', 'user'])
+            ->where('id', $orderId)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        return view('orders.show', ['order' => $order]);
+    }
+
+    /** รายการสั่งซื้อทั้งหมดของ User */
     public function ordersIndex(Request $request)
     {
-        $order = $request->session()->get('last_order');
-        return view('orders.index', ['order' => $order]);
+        $orders = Order::with('items')
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->paginate(10);
+
+        return view('orders.index', ['orders' => $orders]);
     }
 }
