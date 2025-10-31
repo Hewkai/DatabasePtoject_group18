@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
-    /**
-     * แสดงฟอร์มแก้ไขโปรไฟล์
-     */
+    /** แสดงฟอร์มแก้ไขโปรไฟล์ */
     public function edit(Request $request)
     {
         return view('profile.edit', [
@@ -20,9 +18,7 @@ class ProfileController extends Controller
         ]);
     }
 
-    /**
-     * อัปเดตโปรไฟล์ (ชื่อ, อีเมล, เบอร์, ที่อยู่, รูปโปรไฟล์)
-     */
+    /** อัปเดตโปรไฟล์ (ชื่อ, อีเมล, เบอร์, ที่อยู่, รูปโปรไฟล์) */
     public function update(Request $request)
     {
         $user = $request->user();
@@ -32,8 +28,14 @@ class ProfileController extends Controller
             'email'   => ['required','email','max:255', Rule::unique('users','email')->ignore($user->id)],
             'phone'   => ['nullable','string','max:50'],
             'address' => ['nullable','string','max:2000'],
-            'avatar'  => ['nullable','image','mimes:jpg,jpeg,png,webp','max:2048'], // <= 2MB
-            'remove_avatar' => ['nullable','boolean'],
+
+            // รองรับทั้งสองชื่ออินพุต
+            'profile_image'    => ['nullable','image','mimes:jpg,jpeg,png,webp','max:2048'],
+            'avatar'           => ['nullable','image','mimes:jpg,jpeg,png,webp','max:2048'],
+
+            // ปุ่มลบ
+            'remove_profile_image' => ['nullable','boolean'],
+            'remove_avatar'        => ['nullable','boolean'],
         ]);
 
         // ถ้าเปลี่ยนอีเมล -> รีเซ็ตการยืนยัน
@@ -41,20 +43,21 @@ class ProfileController extends Controller
             $user->email_verified_at = null;
         }
 
-        // อัปโหลด/ลบ รูปโปรไฟล์
-        if (!empty($data['remove_avatar'])) {
-            if ($user->avatar_path) {
-                Storage::disk('public')->delete($user->avatar_path);
-            }
-            $user->avatar_path = null;
-        } elseif ($request->hasFile('avatar') && $request->file('avatar')->isValid()) {
-            // ลบไฟล์เก่าถ้ามี
-            if ($user->avatar_path) {
-                Storage::disk('public')->delete($user->avatar_path);
-            }
-            $path = $request->file('avatar')->store('avatars', 'public'); // storage/app/public/avatars/xxx
-            $user->avatar_path = $path;
-        }
+        // ---------- จัดการรูปโปรไฟล์ (ใช้ avatar_path ตัวเดียว) ----------
+$isRemove = !empty($data['remove_profile_image']) || !empty($data['remove_avatar']);
+$newFile  = $request->file('profile_image') ?: $request->file('avatar');
+$current  = $user->avatar_path; // ใช้คอลัมน์นี้ตัวเดียว
+
+if ($isRemove) {
+    if ($current) Storage::disk('public')->delete($current);
+    $user->avatar_path = null;
+} elseif ($newFile && $newFile->isValid()) {
+    if ($current) Storage::disk('public')->delete($current);
+    $stored = $newFile->store('avatars', 'public');
+    $user->avatar_path = $stored;
+}
+// ---------- จบส่วนรูป ----------
+
 
         // อัปเดตฟิลด์อื่น ๆ
         $user->name    = $data['name'];
@@ -67,9 +70,7 @@ class ProfileController extends Controller
         return redirect()->route('profile.edit')->with('status', 'บันทึกโปรไฟล์เรียบร้อย');
     }
 
-    /**
-     * เปลี่ยนรหัสผ่าน
-     */
+    /** เปลี่ยนรหัสผ่าน */
     public function updatePassword(Request $request)
     {
         $request->validate([
@@ -84,9 +85,7 @@ class ProfileController extends Controller
         return back()->with('status', 'เปลี่ยนรหัสผ่านเรียบร้อย');
     }
 
-    /**
-     * ลบบัญชีผู้ใช้
-     */
+    /** ลบบัญชีผู้ใช้ */
     public function destroy(Request $request)
     {
         $request->validate(['password' => ['required','current_password']]);
@@ -95,9 +94,10 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        // ลบรูปเก่าหากมี
-        if ($user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
+        // ลบรูปเก่าหากมี (รองรับทั้งสองฟิลด์)
+        $path = $user->profile_image ?: $user->avatar_path;
+        if ($path) {
+            Storage::disk('public')->delete($path);
         }
 
         $user->delete();

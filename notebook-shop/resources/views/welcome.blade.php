@@ -1,182 +1,109 @@
-<!doctype html>
-<html lang="th">
-<head>
-  <meta charset="utf-8">
-  <title>{{ config('app.name', 'Notebook Shop') }}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    :root{--c:#111;--muted:#666;--bg:#fafafa;--card:#fff;--b:#e6e6e6}
-    *{box-sizing:border-box} html,body{margin:0}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--c)}
-    header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--b);background:#fff;position:sticky;top:0}
-    header h1{margin:0;font-size:18px}
-    header nav a, header nav button{color:var(--c);text-decoration:none;padding:8px 10px;border:1px solid var(--b);border-radius:8px;background:#fff;font:inherit;cursor:pointer}
-    main{max-width:1100px;margin:20px auto;padding:0 20px}
-    .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
-    .toolbar input{flex:1;max-width:420px;padding:10px 12px;border:1px solid var(--b);border-radius:8px}
-    .grid{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:16px}
-    @media (min-width:640px){.grid{grid-template-columns:repeat(2,1fr)}}
-    @media (min-width:960px){.grid{grid-template-columns:repeat(3,1fr)}}
-    .card{background:var(--card);border:1px solid var(--b);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-    .thumb{width:100%;aspect-ratio:16/10;background:#f2f2f2;display:flex;align-items:center;justify-content:center;font-size:12px;color:#999}
-    .card-body{padding:14px;display:flex;flex-direction:column;gap:8px}
-    .title{font-weight:600}
-    .meta{font-size:13px;color:var(--muted)}
-    .price{margin-top:4px;font-weight:700}
-    .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
-    .btn{display:inline-block;padding:8px 10px;border:1px solid var(--b);background:#fff;border-radius:8px;text-decoration:none;color:#111;font-size:14px}
-    .badge{display:inline-block;font-size:12px;background:#f3f4f6;border:1px solid var(--b);color:#333;padding:2px 8px;border-radius:999px}
-    .empty,.error,.loading{padding:24px;text-align:center;color:var(--muted)}
-  </style>
-</head>
-<body>
-<header>
-  <h1>🛍️ {{ config('app.name', 'Notebook Shop') }}</h1>
+@extends('layouts.app')
 
-  <nav style="display:flex;gap:12px;align-items:center">
-    <a href="{{ route('cart.index') }}">ตะกร้า</a>
-
-    {{-- ผู้ใช้ที่ล็อกอินแล้ว --}}
-    @auth
-      <a href="{{ route('profile.edit') }}">โปรไฟล์ของฉัน</a>
-
-      {{-- เฉพาะแอดมินเท่านั้นที่เห็น Admin + API --}}
-      @if (auth()->user()->is_admin)
-        <a href="/admin">Admin</a>
-        <a href="/api/products" target="_blank" rel="noopener">API</a>
-      @endif
-
-      <form method="POST" action="{{ route('logout') }}" style="display:inline">
-        @csrf
-        <button type="submit">ออกจากระบบ</button>
-      </form>
-    @endauth
-
-    {{-- ผู้เยี่ยมชม (ยังไม่ล็อกอิน) --}}
-    @guest
-      <a href="{{ route('login') }}">เข้าสู่ระบบ</a>
-      <a href="{{ route('register') }}">สมัครสมาชิก</a>
-    @endguest
-  </nav>
-</header>
-
-<main>
-  <div class="toolbar">
-    <input id="q" type="search" placeholder="ค้นหา: รุ่น / ยี่ห้อ / CPU / GPU ...">
-    <span class="badge" id="count">—</span>
-  </div>
-
-  <div id="loading" class="loading">กำลังโหลดสินค้า…</div>
-  <div id="error" class="error" style="display:none"></div>
-  <div id="grid" class="grid" style="display:none"></div>
-</main>
-
-<script>
-  const elGrid   = document.getElementById('grid');
-  const elLoad   = document.getElementById('loading');
-  const elErr    = document.getElementById('error');
-  const elQ      = document.getElementById('q');
-  const elCount  = document.getElementById('count');
-  const CSRF     = @json(csrf_token());
-  const LOGGED_IN = @json(auth()->check());
-
-  let ALL = [];
-
-  function money(n){
-    if(n === null || n === undefined || n === '') return '-';
-    const num = Number(n);
-    if (Number.isNaN(num)) return String(n);
-    return num.toLocaleString('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 });
-  }
-
-  function cardHtml(p){
-    const brand = p.brand?.name ?? '-';
-    const cpu   = [p.cpu_brand,p.cpu_model].filter(Boolean).join(' ');
-    const ram   = p.ram_gb ? `${p.ram_gb} GB` : '-';
-    const ssd   = p.storage_gb ? `${p.storage_gb} GB` : '-';
-    const gpu   = p.gpu ?? '-';
-    const img   = p.primary_image?.url ?? null;
-
-    const detailUrl = `/product/${p.id}`;
-
-    const addBtn = LOGGED_IN
-      ? `<form method="post" action="/cart/add" style="margin:0">
-           <input type="hidden" name="_token" value="${CSRF}">
-           <input type="hidden" name="product_id" value="${p.id}">
-           <button class="btn" type="submit">เพิ่มลงตะกร้า</button>
-         </form>`
-      : `<a class="btn" href="/login">เข้าสู่ระบบเพื่อซื้อ</a>`;
-
-    return `
-      <article class="card">
-        <a href="${detailUrl}" class="thumb" aria-label="ดู ${brand} ${p.model}">
-          ${img ? `<img src="${img}" alt="${brand} ${p.model}" style="width:100%;height:100%;object-fit:cover;">` : 'ไม่มีรูป'}
-        </a>
-        <div class="card-body">
-          <a class="title" href="${detailUrl}">${brand} • ${p.model}</a>
-          <div class="meta">CPU: ${cpu || '-'} | RAM: ${ram} | SSD: ${ssd}</div>
-          <div class="meta">GPU: ${gpu}</div>
-          <div class="row">
-            <div class="price">${money(p.price)}</div>
-            ${addBtn}
-          </div>
+@section('content')
+  {{-- HERO SECTION --}}
+  <section class="relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 grid lg:grid-cols-2 gap-10 items-center">
+      <div>
+        <h1 class="mt-3 text-4xl sm:text-5xl font-anton leading-tight text-blue-700">
+          Power Up Your Performance
+        </h1>
+        <p class="mt-5 text-gray-700 leading-relaxed text-base sm:text-lg">
+          ค้นพบแล็ปท็อปและคอมพิวเตอร์ประสิทธิภาพสูง สำหรับการเรียน การทำงาน และการสร้างสรรค์ —
+          ยกระดับประสิทธิภาพของคุณด้วยเทคโนโลยีล่าสุด
+        </p>
+        <div class="mt-8">
+          <a href="{{ route('products.index') }}"
+             class="inline-flex items-center rounded-full bg-blue-600 text-white px-6 h-11 text-sm hover:bg-blue-700 transition">
+             ดูสินค้า
+          </a>
         </div>
-      </article>
-    `;
-  }
+      </div>
 
-  function render(list){
-    elGrid.innerHTML = list.map(cardHtml).join('');
-    elCount.textContent = `${list.length} รายการ`;
-    elGrid.style.display = list.length ? 'grid' : 'none';
+      <div class="relative">
+        <img src="{{ asset('pic/msi.png') }}" alt="MSI Laptop"
+             class="w-full max-w-2xl mx-auto drop-shadow-xl select-none pointer-events-none">
+      </div>
+    </div>
+  </section>
 
-    if (!list.length){
-      elErr.style.display = 'none';
-      elLoad.style.display = 'none';
-      const empty = document.createElement('div');
-      empty.className = 'empty';
-      empty.textContent = 'ไม่พบสินค้า';
-      elGrid.after(empty);
-    } else {
-      const next = elGrid.nextElementSibling;
-      if (next && next.classList.contains('empty')) next.remove();
-    }
-  }
+  {{-- FEATURE SECTION --}}
+  <section class="pb-16">
+    <div class="text-center mb-10">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
+        พาร์ตเนอร์คอมพิวเตอร์ที่คุณไว้ใจได้
+      </h2>
+    </div>
 
-  function filter(keyword){
-    const q = keyword.trim().toLowerCase();
-    if (!q) return render(ALL);
-    const out = ALL.filter(p => {
-      const brand = (p.brand?.name ?? '').toLowerCase();
-      return [
-        String(p.id),
-        p.model ?? '',
-        p.cpu_brand ?? '',
-        p.cpu_model ?? '',
-        p.gpu ?? '',
-        brand,
-      ].join(' ').toLowerCase().includes(q);
-    });
-    render(out);
-  }
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
+      <div class="flex flex-col items-center text-center">
+        <img src="{{ asset('pic/shopping-cart.png') }}" class="h-16 w-16 mb-3" alt="สั่งซื้อง่าย">
+        <h3 class="font-semibold text-lg">สั่งซื้อง่าย</h3>
+        <p class="mt-2 text-gray-600 text-sm">
+          เลือกรุ่นที่ต้องการและสั่งซื้อออนไลน์ได้ในไม่กี่คลิก
+        </p>
+      </div>
 
-  elQ.addEventListener('input', (e)=> filter(e.target.value));
+      <div class="flex flex-col items-center text-center">
+        <img src="{{ asset('pic/express-delivery.png') }}" class="h-16 w-16 mb-3" alt="จัดส่งรวดเร็ว">
+        <h3 class="font-semibold text-lg">จัดส่งรวดเร็ว</h3>
+        <p class="mt-2 text-gray-600 text-sm">
+          จัดส่งสินค้าถึงหน้าบ้านของคุณอย่างปลอดภัยและรวดเร็ว
+        </p>
+      </div>
 
-  (async () => {
-    try {
-      const res = await fetch('/api/products?per_page=60', { headers:{ Accept:'application/json' }});
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const items = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
-      ALL = items;
-      render(ALL);
-    } catch (e){
-      elErr.textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + (e?.message ?? e);
-      elErr.style.display = 'block';
-    } finally {
-      elLoad.style.display = 'none';
-    }
-  })();
-</script>
-</body>
-</html>
+      <div class="flex flex-col items-center text-center">
+        <img src="{{ asset('pic/achievement.png') }}" class="h-16 w-16 mb-3" alt="คุณภาพดีที่สุด">
+        <h3 class="font-semibold text-lg">คุณภาพดีที่สุด</h3>
+        <p class="mt-2 text-gray-600 text-sm">
+          สินค้าของแท้ รับประกันศูนย์ พร้อมบริการหลังการขายที่มั่นใจได้
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {{-- ✅ Footer (เฉพาะหน้า Home) --}}
+  <footer class="border-t border-gray-100">
+    <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-10 grid md:grid-cols-4 gap-8 text-sm">
+      <div>
+        <div class="flex items-center gap-2">
+          <div class="h-6 w-6 rounded-full bg-blue-600"></div>
+          <span class="font-semibold">COMP</span>
+        </div>
+        <p class="mt-3 text-gray-600">
+          เราพร้อมช่วยคุณค้นหาคอมพิวเตอร์ที่เหมาะกับการเรียน การทำงาน และการใช้งานทุกประเภท
+        </p>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-3">เกี่ยวกับเรา</h4>
+        <ul class="space-y-2 text-gray-600">
+          <li><a class="hover:text-blue-600" href="#">บริษัท</a></li>
+          <li><a class="hover:text-blue-600" href="#">ฟีเจอร์</a></li>
+          <li><a class="hover:text-blue-600" href="#">บล็อก</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-3">บริการลูกค้า</h4>
+        <ul class="space-y-2 text-gray-600">
+          <li><a class="hover:text-blue-600" href="#">คำถามที่พบบ่อย</a></li>
+          <li><a class="hover:text-blue-600" href="#">การรับประกัน</a></li>
+          <li><a class="hover:text-blue-600" href="#">ติดต่อเรา</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-3">ติดต่อเรา</h4>
+        <form class="flex gap-2">
+          <input type="email" placeholder="อีเมลของคุณ"
+                 class="flex-1 rounded-xl border border-gray-300 px-3 h-10 focus:ring-2 focus:ring-blue-200 focus:border-blue-500">
+          <button type="submit"
+                  class="rounded-xl bg-blue-600 text-white px-4 h-10 hover:bg-blue-700">
+            ส่ง
+          </button>
+        </form>
+      </div>
+    </div>
+    <div class="text-center text-xs text-gray-500 pb-8">
+      © {{ date('Y') }} COMP. สงวนลิขสิทธิ์
+    </div>
+  </footer>
+@endsection

@@ -19,18 +19,21 @@ use App\Models\Product;
 */
 
 // ลิสต์แบรนด์/หมวดหมู่
-Route::get('brands', [BrandController::class, 'index']);
-Route::get('categories', fn () => Category::orderBy('name')->get());
+Route::get('brands', [BrandController::class, 'index'])->name('api.brands.index');
+Route::get('categories', fn () => Category::orderBy('name')->get())->name('api.categories.index');
 
 // ลิสต์รูปของสินค้าหนึ่งตัว (อ่านอย่างเดียว)
 Route::get('products/{product}/images', fn (Product $product) =>
     $product->images()->orderBy('sort_order')->get()
-)->name('products.images.index');
+)->name('api.products.images.index');
 
 // products: อ่านเฉพาะ index/show
 Route::apiResource('products', ProductController::class)
     ->only(['index', 'show'])
-    ->names('products');
+    ->names([
+        'index' => 'api.products.index',
+        'show'  => 'api.products.show',
+    ]);
 
 
 /*
@@ -48,9 +51,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // products: เขียน (create/update/delete)
     Route::apiResource('products', ProductController::class)
         ->only(['store', 'update', 'destroy'])
-        ->names('products');
+        ->names([
+            'store'   => 'api.products.store',
+            'update'  => 'api.products.update',
+            'destroy' => 'api.products.destroy',
+        ]);
 
     // อัปโหลดรูปสินค้า (multipart/form-data)
     Route::post('products/{product}/images', [ProductImageController::class, 'store'])
-        ->name('products.images.store');
+        ->name('api.products.images.store');
 });

@@ -1,82 +1,188 @@
 @extends('layouts.app')
 
-@section('title', 'แก้ไขโปรไฟล์')
-
 @section('content')
-<div style="max-width:900px;margin:24px auto;font-family:system-ui; padding: 0 16px">
-    <h2 style="margin:0 0 16px">โปรไฟล์ของฉัน</h2>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    @if (session('status') === 'profile-updated')
-        <div style="padding:10px 12px;border:1px solid #c7f5d9;background:#e9fff1;color:#166534;border-radius:8px;margin-bottom:14px">
-            บันทึกโปรไฟล์เรียบร้อย
-        </div>
-    @endif
+  {{-- หัวข้อ --}}
+  <h1 class="text-2xl font-semibold text-gray-900 mb-6">โปรไฟล์ของฉัน</h1>
 
-    <div style="display:grid;grid-template-columns: 200px 1fr; gap:20px; align-items:flex-start">
-        <div style="text-align:center">
-            <img src="{{ $user->avatarUrl() }}" alt="avatar" style="width:160px;height:160px;border-radius:50%;object-fit:cover;border:1px solid #e5e7eb">
-        </div>
+  {{-- แจ้งสถานะ --}}
+  @if (session('status'))
+    <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 px-4 py-2">
+      {{ session('status') }}
+    </div>
+  @endif
+  @if ($errors->any())
+    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-2">
+      <ul class="list-disc list-inside space-y-1">
+        @foreach ($errors->all() as $e)
+          <li>{{ $e }}</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
 
-        <form method="post" action="{{ route('profile.update') }}" enctype="multipart/form-data"
-              style="display:grid; gap:12px">
-            @csrf
-            @method('patch')
+  {{-- ฟอร์ม --}}
+  <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data"
+        class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    @csrf
+    @method('PATCH')
 
-            <div>
-                <label>รูปโปรไฟล์</label><br>
-                <input type="file" name="avatar" accept="image/*">
-                @error('avatar') <div style="color:#b91c1c">{{ $message }}</div> @enderror
-            </div>
+    {{-- ซ้าย: รูปโปรไฟล์ --}}
+    <div class="bg-white border border-gray-200 rounded-2xl p-6">
+      <h2 class="text-sm font-medium text-gray-800 mb-4">รูปโปรไฟล์</h2>
 
-            <div>
-                <label>ชื่อ</label><br>
-                <input type="text" name="name" value="{{ old('name', $user->name) }}" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px">
-                @error('name') <div style="color:#b91c1c">{{ $message }}</div> @enderror
-            </div>
+      @php
+        $path = auth()->user()->profile_image ?? auth()->user()->avatar_path;
+        $avatar = $path ? asset('storage/'.$path) : asset('pic/user.png');
+      @endphp
 
-            <div>
-                <label>อีเมล</label><br>
-                <input type="email" name="email" value="{{ old('email', $user->email) }}" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px">
-                @error('email') <div style="color:#b91c1c">{{ $message }}</div> @enderror
-            </div>
+      <div class="flex flex-col items-center gap-3">
+        <img id="avatarPreview" src="{{ $avatar }}"
+             class="w-32 h-32 rounded-full object-cover border border-gray-300">
+        
+        {{-- input อัปโหลด --}}
+        <label for="profile_image"
+               class="w-full text-center cursor-pointer rounded-xl border-2 border-dashed border-gray-300 p-3 text-sm text-gray-600 hover:border-blue-400 transition">
+          เลือกรูปภาพใหม่
+          <input id="profile_image" name="profile_image" type="file" accept="image/*" class="sr-only">
+        </label>
 
-            <div>
-                <label>เบอร์โทร</label><br>
-                <input type="text" name="phone" value="{{ old('phone', $user->phone) }}" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px">
-                @error('phone') <div style="color:#b91c1c">{{ $message }}</div> @enderror
-            </div>
-
-            <div>
-                <label>ที่อยู่</label><br>
-                <textarea name="address" rows="3" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px">{{ old('address', $user->address) }}</textarea>
-                @error('address') <div style="color:#b91c1c">{{ $message }}</div> @enderror
-            </div>
-
-            <div style="display:flex; gap:8px">
-                <button type="submit" style="padding:10px 14px;border:1px solid #111;border-radius:8px;background:#111;color:#fff">
-                    บันทึก
-                </button>
-                <a href="{{ url('/') }}" style="padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;text-decoration:none">
-                    กลับหน้าแรก
-                </a>
-            </div>
-        </form>
+        {{-- ปุ่มลบรูป --}}
+        @if($path)
+          <button type="submit" name="remove_profile_image" value="1"
+                  class="text-xs text-red-600 hover:text-red-800 underline">
+            ลบรูปโปรไฟล์
+          </button>
+        @endif
+      </div>
     </div>
 
-    <hr style="margin:24px 0">
+    {{-- ขวา: ข้อมูลผู้ใช้ --}}
+    <div class="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 space-y-5">
 
-    <details>
-        <summary style="cursor:pointer">ลบบัญชี</summary>
-        <form method="post" action="{{ route('profile.destroy') }}" style="margin-top:12px;display:grid;gap:8px">
-            @csrf
-            @method('delete')
-            <label>ยืนยันรหัสผ่าน</label>
-            <input type="password" name="password" style="max-width:360px;padding:10px;border:1px solid #e5e7eb;border-radius:8px">
-            @error('password') <div style="color:#b91c1c">{{ $message }}</div> @enderror
-            <button type="submit" style="width:max-content;padding:10px 14px;border:1px solid #b91c1c;border-radius:8px;background:#fee2e2;color:#7f1d1d">
-                ลบบัญชีถาวร
-            </button>
-        </form>
-    </details>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ</label>
+        <input type="text" name="name" value="{{ old('name', $user->name) }}"
+               class="w-full h-11 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+        <input type="email" name="email" value="{{ old('email', $user->email) }}"
+               class="w-full h-11 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร</label>
+        <input type="text" name="phone" value="{{ old('phone', $user->phone) }}"
+               class="w-full h-11 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">ที่อยู่</label>
+        <textarea name="address" rows="3"
+                  class="w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500">{{ old('address', $user->address) }}</textarea>
+      </div>
+
+      <div class="pt-2 flex gap-3">
+        <button type="submit"
+                class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700">
+          บันทึก
+        </button>
+        <a href="{{ route('home') }}"
+           class="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50">
+          กลับหน้าแรก
+        </a>
+      </div>
+    </div>
+  </form>
 </div>
+อ{{-- แถบบรรทัดล่างขวา: ลบบัญชี --}}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="pt-6 pb-2 flex justify-end">
+    <button type="button" id="openDeleteModal"
+            class="text-xs sm:text-sm text-red-600 hover:text-red-800 underline">
+      ลบบัญชีผู้ใช้
+    </button>
+  </div>
+</div>
+
+
+{{-- Preview รูปโปรไฟล์ --}}
+<script>
+  const input = document.getElementById('profile_image');
+  const preview = document.getElementById('avatarPreview');
+  input?.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    preview.src = URL.createObjectURL(file);
+  });
+</script>
+{{-- 🔴 Modal ยืนยันการลบบัญชี (เล็ก + ไม่เต็มจอ) --}}
+<div id="deleteModal"
+     class="hidden fixed inset-0 z-[999] bg-black/40 backdrop-blur-sm p-4
+            flex items-center justify-center">
+  <div id="deleteDialog"
+       class="relative w-[88%] max-w-sm sm:max-w-md bg-white rounded-2xl border border-gray-100 shadow-xl
+              p-6 text-center opacity-0 scale-95 transition-all duration-150">
+
+    {{-- ปิด --}}
+    <button type="button" id="closeDelete"
+            class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">✕</button>
+
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">ยืนยันการลบบัญชี</h3>
+    <p class="text-sm text-gray-600 mb-4 leading-relaxed">
+      การลบนี้เป็นการลบถาวรและไม่สามารถกู้คืนได้<br>โปรดพิมพ์รหัสผ่านเพื่อยืนยัน
+    </p>
+
+    <form method="POST" action="{{ route('profile.destroy') }}" class="space-y-4">
+      @csrf
+      @method('DELETE')
+      <input type="password" name="password" required
+             class="w-full h-11 rounded-xl border-gray-300 text-center
+                    focus:border-red-500 focus:ring-red-500"
+             placeholder="รหัสผ่านปัจจุบัน">
+
+      <div class="flex justify-end gap-3 pt-1">
+        <button type="button" id="cancelDelete"
+                class="px-4 h-10 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50">
+          ยกเลิก
+        </button>
+        <button type="submit"
+                class="px-4 h-10 rounded-xl bg-red-600 text-white hover:bg-red-700">
+          ยืนยันการลบ
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{-- Script คุม modal --}}
+<script>
+  const modal   = document.getElementById('deleteModal');
+  const dialog  = document.getElementById('deleteDialog');
+  const openBtn = document.getElementById('openDeleteModal');
+  const closeBtn= document.getElementById('closeDelete');
+  const cancel  = document.getElementById('cancelDelete');
+
+  function openModal(){
+    modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    requestAnimationFrame(()=> dialog.classList.remove('opacity-0','scale-95'));
+  }
+  function closeModal(){
+    dialog.classList.add('opacity-0','scale-95');
+    document.body.classList.remove('overflow-hidden');
+    setTimeout(()=> modal.classList.add('hidden'), 140);
+  }
+
+  openBtn?.addEventListener('click', openModal);
+  closeBtn?.addEventListener('click', closeModal);
+  cancel?.addEventListener('click', closeModal);
+  modal?.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeModal(); });
+</script>
+
+
 @endsection

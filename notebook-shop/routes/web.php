@@ -12,6 +12,14 @@ use App\Models\Product;
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+Route::get('/products', function () {
+    $products = \App\Models\Product::with(['brand','categories','primaryImage'])
+        ->latest()
+        ->paginate(12);
+
+    return view('public.index', compact('products'));
+})->name('products.index');
+
 
 /**
  * หน้าสินค้าแบบ public (กดจากการ์ด)
@@ -50,6 +58,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/checkout', [CartController::class, 'checkoutProcess'])->name('checkout.process');
 
     Route::get('/orders', [CartController::class, 'ordersIndex'])->name('orders.index');
+    
 });
 
 /** เส้นทาง auth ของ Breeze */
